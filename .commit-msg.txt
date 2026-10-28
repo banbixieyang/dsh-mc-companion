@@ -1,8 +1,14 @@
-fix(prompt): render the autopilot line in promptText, not in facts()
+fix(dig): only a server-confirmed break counts
 
-The idle-reflex line was pushed into a `lines` array that only exists inside
-promptText(), so any session where the autopilot had reacted crashed with
-"lines is not defined" - which took down mode enable as well.
+mineflayer marks a dug block as air locally the moment bot.dig() resolves
+(_updateBlockState), so the previous check ("blockAt is not the block anymore")
+was always true and behaviours counted phantom chops as progress - the bot
+reported 3/3 logs on an untouched tree.
 
-The line now travels through the facts object and is rendered (only while
-online) where the other prompt lines are built.
+A dig now counts only when the server confirms it (block_change at that
+position) or a drop appears next to it. Otherwise the dig is retried and then
+reported as dig_rejected with the distance, so the loop can avoid that target.
+
+Verified against the live 26.3 server: digging the block under the bot breaks it
+(broke grass_block, the bot falls one block), while phantom targets are now
+reported instead of counted.

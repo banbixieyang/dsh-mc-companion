@@ -26,7 +26,7 @@
     "postinstall": "node scripts/install-263-compat.mjs",
     "compat:263": "node scripts/install-263-compat.mjs",
     "compat:263:check": "node scripts/install-263-compat.mjs --check",
-    "test": "node test/gating.test.mjs && node test/schematic.test.mjs && node test/builder.test.mjs && node test/scaffold.test.mjs && node test/behaviors.test.mjs && node test/navigation.test.mjs && node test/capabilities.test.mjs && node test/dashboard.test.mjs && node test/status-context.test.mjs && node test/compat263.test.mjs",
+    "test": "node test/gating.test.mjs && node test/schematic.test.mjs && node test/builder.test.mjs && node test/scaffold.test.mjs && node test/behaviors.test.mjs && node test/navigation.test.mjs && node test/capabilities.test.mjs && node test/dashboard.test.mjs && node test/status-context.test.mjs && node test/compat263.test.mjs && node test/dig.test.mjs",
     "test:gate": "node test/gating.test.mjs",
     "eval": "node test/eval/run.mjs",
     "test:compat263": "node test/compat263.test.mjs",
