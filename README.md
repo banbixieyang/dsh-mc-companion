@@ -242,8 +242,8 @@ mc_companion_mode  { action: "enable" | "disable" | "status" }
 | `mc_events` | 读取事件流（聊天/死亡/被踢/建造进度…） | `limit`, `since_seq`, `type_prefix` |
 | `mc_behavior` | **自主行为**：探索/伐木/采矿/打怪，一次调用跑到底；可暂停/继续 | `action: start\|stop\|pause\|resume\|status`, `mode`, `amount`, `targets`, `radius`, `maxDurationMs` |
 | `mc_inventory` | **全部物品操作**：查看/装备/进食/丢弃/合成/烧炼/箱子 | `action: list\|equip\|eat\|drop\|craft\|smelt\|container`, `item`, `count`, `destination`, `input`, `fuel`, `x/y/z` |
-| `mc_act` | **全部世界动作**：挖/放/使用/攻击/重生/捡拾 + 自律开关 | `action: break\|place\|use\|attack\|respawn\|collect\|autopilot`, `x/y/z`, `item`, `targets`, `radius` |
-| `mc_goto` | 走到绝对坐标；卡住/超时/太远都明确报告 | `x`, `y`, `z`, `tolerance`, `timeout_ms` |
+| `mc_act` | **全部世界动作**：挖/放/使用/攻击/重生/捡拾 + 自律开关 | `action: break\|place\|use\|attack\|respawn\|collect\|autopilot`, `x/y/z`, `item`, `targets`, `radius`, `force` |
+| `mc_goto` | 走到绝对坐标；卡住/超时/太远都明确报告 | `x`, `y`, `z`, `tolerance`, `timeout_ms`, `force` |
 | `mc_use_block` | 睡床（= 绑定重生点）/ 按按钮等安全方块 | `action: sleep\|activate`, `x`, `y`, `z`, `radius` |
 | `mc_generate_schematic` | 结构化 JSON → `.schem` 投影 | `spec`, `version`, `overwrite` |
 | `mc_build_schematic` | 按投影建造 | `schematic`/`path`, `position`, `rotation`, `dry_run`, `wait_ms`, `onOccupied`, `allow_creative_fill`, `allow_scaffold` |
@@ -532,6 +532,44 @@ autopilot:
 
 新增的面板动作：`autopilot.set`、`inventory.list|eat|equip|craft|drop`、`act.attack|respawn|collect|break|place`。
 游戏内聊天依然不能当命令用——面板是 DSH 用户的控制面，游戏内玩家只能聊天。
+
+### 3.12 默认保守，强制才越界（force）
+
+Bot 默认**不会**做这些事：走到受限/危险的位置、拆受保护的方块、在其他玩家附近动土。
+但你是操作者——明确下命令时可以覆盖这些**策略**限制。
+
+```text
+mc_goto {x:900, y:-60, z:-33}
+→ MC_GOTO_TOO_FAR（超过 gotoMaxDistance=128）
+
+mc_goto {x:900, y:-60, z:-33, force:true}
+→ 真的开始走（放宽门/跑酷/落差限制），到时间上限才停，结果带 forced:true
+
+mc_act {action:"break", x:12, y:-60, z:8}
+→ BLOCK_PROTECTED（箱子在保护名单里）
+
+mc_act {action:"break", x:12, y:-60, z:8, force:true}
+→ 拆掉，结果带 forced:true
+```
+
+**force 能覆盖什么（策略层）**
+
+| 限制 | 默认 | force |
+| --- | --- | --- |
+| `mc_goto` 距离上限 | 128 格（`gotoMaxDistance`） | 不设上限（`gotoForceMaxDistance: 0`），仍受超时与地形限制 |
+| 寻路保守策略 | 不开门、不跑酷、落差 ≤3 | 开门、跑酷、落差 ≤32（**仍然不挖方块、不搭塔**） |
+| 保护方块（箱子/床/刷怪笼/命令方块…） | 拒绝 | 允许破坏 |
+| 其他玩家 3 格内动土 | 拒绝 | 允许 |
+
+**force 不能覆盖什么（物理/服务端事实）**
+
+- 区块未加载 → `BLOCK_NOT_LOADED`；
+- 工具/权限不允许（生存模式空手挖黑曜石）→ `CANNOT_DIG`；
+- Bot 离线 → `MC_BOT_NOT_CONNECTED`；
+- 地形真的过不去 → 仍然返回 `MC_PATH_STUCK`，但带 `forced:true` 与 `partial:true`，并给出停下的坐标与剩余距离。
+
+行为（`mc_behavior`）**永远不带 force**：探索/伐木/采矿/打怪不会因为一次呼叫就变成拆迁队；
+要定点拆除就单点 `mc_act break + force`。
 
 ## 4. 投影生成与建造
 

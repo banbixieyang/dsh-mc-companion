@@ -38,6 +38,8 @@
         behaviorProtectDistance: 3
         # 单次 mc_goto 的最大直线距离与默认时限
         gotoMaxDistance: 128
+        # 强制 goto 的距离上限；0 = 不设上限（仍受超时与地形限制）
+        gotoForceMaxDistance: 0
         gotoTimeoutMs: 60000
         # 空窗自律：无人指挥时的基础反应（只吃/打/逃/捡/重生，不挖方块、不打玩家）
         autopilot:
@@ -51,6 +53,7 @@
           pickupRadius: 8
           respawn: true
           followOwner: false
+
 
 
 

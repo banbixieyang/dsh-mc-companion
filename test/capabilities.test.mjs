@@ -171,6 +171,36 @@ test('breaking refuses protected blocks and blocks next to players', async () =>
   assert.deepEqual(ok.calls.dig, ['stone'])
 })
 
+test('force lets an explicit command override the protection policy', async () => {
+  const protectedBlock = stub({ blocks: [{ name: 'chest', x: 1, y: -60, z: 0 }] })
+  const refused = await actions.breakBlockAt(protectedBlock.controller, { x: 1, y: -60, z: 0 })
+  assert.equal(refused.error, 'BLOCK_PROTECTED')
+  const forced = await actions.breakBlockAt(protectedBlock.controller, { x: 1, y: -60, z: 0, force: true })
+  assert.equal(forced.ok, true, JSON.stringify(forced))
+  assert.equal(forced.forced, true)
+  assert.deepEqual(protectedBlock.calls.dig, ['chest'])
+
+  const nearPlayer = stub({
+    blocks: [{ name: 'stone', x: 1, y: -60, z: 0 }],
+    players: { Alice: { entity: { position: new Vec3(2, -60, 0) } } }
+  })
+  const guarded = await actions.breakBlockAt(nearPlayer.controller, { x: 1, y: -60, z: 0 })
+  assert.equal(guarded.error, 'BLOCK_NEAR_PLAYER')
+  const overridden = await actions.breakBlockAt(nearPlayer.controller, { x: 1, y: -60, z: 0, force: true })
+  assert.equal(overridden.ok, true, JSON.stringify(overridden))
+})
+
+test('force still refuses what the engine cannot do', async () => {
+  const notLoaded = stub()
+  const missing = await actions.breakBlockAt(notLoaded.controller, { x: 50, y: -60, z: 50, force: true })
+  assert.equal(missing.error, 'BLOCK_NOT_LOADED')
+
+  const unbreakable = stub({ blocks: [{ name: 'bedrock', x: 1, y: -60, z: 0 }] })
+  unbreakable.bot.canDigBlock = () => false
+  const cannot = await actions.breakBlockAt(unbreakable.controller, { x: 1, y: -60, z: 0, force: true })
+  assert.equal(cannot.error, 'CANNOT_DIG')
+})
+
 test('placing needs a block in hand and a support', async () => {
   const holdingTool = stub({ items: [item('iron_pickaxe', 1)], blocks: [{ name: 'stone', x: 0, y: -61, z: 0 }] })
   const notABlock = await actions.placeBlockAt(holdingTool.controller, { x: 1, y: -60, z: 0 })
@@ -360,6 +390,7 @@ test('autopilot stays quiet when disabled', async () => {
     pilot.stop()
   }
 })
+
 
 
 

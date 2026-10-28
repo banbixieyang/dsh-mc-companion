@@ -135,6 +135,19 @@ test('a short budget surfaces as a timeout', async () => {
   assert.equal(result.error, 'MC_GOTO_TIMEOUT')
 })
 
+test('force overrides the distance cap but still bounds the trip', async () => {
+  const { botController } = stubBot({ moving: false })
+  const refused = await gotoPosition(botController, { x: 900, y: -60, z: 0, timeoutMs: 2_000 })
+  assert.equal(refused.ok, false)
+  assert.equal(refused.error, 'MC_GOTO_TOO_FAR')
+
+  const forced = await gotoPosition(botController, { x: 900, y: -60, z: 0, timeoutMs: 1_000, force: true })
+  assert.equal(forced.ok, false)
+  // The engine still bounds it: a forced trip times out instead of being refused.
+  assert.equal(forced.error, 'MC_GOTO_TIMEOUT', JSON.stringify(forced))
+  assert.equal(forced.forced, true)
+})
+
 test('block classification', () => {
   assert.equal(isBed('red_bed'), true)
   assert.equal(isBed('oak_planks'), false)
@@ -203,3 +216,4 @@ test('non-whitelisted blocks are refused, whitelisted ones are used', async () =
   assert.equal(used.ok, true)
   assert.equal(used.block.name, 'oak_button')
 })
+
