@@ -43,7 +43,7 @@
         autopilot:
           enabled: true
           eat: true
-          eatThreshold: 16
+          eatThreshold: 18
           defend: true
           flee: true
           fleeHealth: 6
@@ -51,6 +51,7 @@
           pickupRadius: 8
           respawn: true
           followOwner: false
+
 
 
 

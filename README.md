@@ -498,7 +498,7 @@ mc_use_block {action:"sleep"}
 | 开关 | 默认 | 行为 |
 | --- | --- | --- |
 | `enabled` | true | 总开关 |
-| `eat` / `eatThreshold` | true / 16 | 饥饿值 ≤ 阈值且有食物就吃 |
+| `eat` / `eatThreshold` | true / 18 | 饥饿 ≤ 阈值**或饱食度见底**且有食物就吃；没食物每分钟报一次 |
 | `defend` | true | 受到伤害后反击附近敌对生物（**不攻击玩家**） |
 | `flee` / `fleeHealth` | true / 6 | 血量 ≤ 阈值且有敌对生物靠近就拉开距离 |
 | `pickup` / `pickupRadius` | true / 8 | 空闲时走过去捡掉落物 |
@@ -513,7 +513,7 @@ mc_use_block {action:"sleep"}
 autopilot:
   enabled: true
   eat: true
-  eatThreshold: 16
+  eatThreshold: 18
   defend: true
   flee: true
   fleeHealth: 6
@@ -1033,4 +1033,5 @@ dsh-mc-companion/
 - Bot 不会主动改变世界；只有用户明确指令才会建造/清除方块。
 - Bot 的聊天以真实玩家身份发送，请遵守服务器规则，不要刷屏。
 - 测试服务器与测试世界完全位于 `dsh-mc-companion/.test-server/`，可随时删除。
+
 

@@ -19,12 +19,13 @@ import { EventLog } from '../lib/events.js'
 
 const item = (name, count = 1, slot = 36, type = 1) => ({ name, count, slot, type })
 
-function stub ({ items = [], blocks = [], health = 20, food = 20, target = null, entities = {}, players = {} } = {}) {
+function stub ({ items = [], blocks = [], health = 20, food = 20, saturation = 5, target = null, entities = {}, players = {} } = {}) {
   const world = blocks.map((entry) => ({ ...entry }))
   const calls = { dig: [], place: [], attack: [], consume: 0, respawn: 0, equip: [], craft: [], toss: [] }
   const bot = {
     health,
     food,
+    foodSaturation: saturation,
     isSleeping: false,
     game: { gameMode: 'creative' },
     entity: { position: new Vec3(0, -60, 0), id: 1 },
@@ -232,6 +233,52 @@ test('autopilot defaults are conservative', () => {
   assert.equal(AUTOPILOT_DEFAULTS.defend, true)
   assert.equal(AUTOPILOT_DEFAULTS.followOwner, false)
   assert.equal(AUTOPILOT_DEFAULTS.fleeHealth, 6)
+  assert.equal(AUTOPILOT_DEFAULTS.eatThreshold, 18)
+})
+
+test('autopilot eats when saturation runs out even above the hunger threshold', async () => {
+  // This is the case that used to do nothing: hunger 19 > threshold, but
+  // saturation is gone, so a player would eat now rather than let it hit 16.
+  const { bot, controller, calls } = stub({ items: [item('potato', 5)], food: 19, saturation: 0 })
+  const pilot = new Autopilot({ botController: controller, config: normalizeConfig({}), events: new EventLog(50) })
+  pilot.start()
+  try {
+    for (let i = 0; i < 10 && calls.consume === 0; i++) await sleep(150)
+    assert.equal(calls.consume, 1, 'saturation 0 with food 19 must trigger eating')
+    assert.match(pilot.snapshot().lastAction.message, /吃了/)
+  } finally {
+    pilot.stop()
+  }
+})
+
+test('autopilot stays quiet when the bar is full and saturation is fine', async () => {
+  const { bot, controller, calls } = stub({ items: [item('potato', 5)], food: 20, saturation: 5 })
+  const pilot = new Autopilot({ botController: controller, config: normalizeConfig({}), events: new EventLog(50) })
+  pilot.start()
+  try {
+    await sleep(700)
+    assert.equal(calls.consume, 0)
+  } finally {
+    pilot.stop()
+  }
+})
+
+test('autopilot says so when it is hungry without food', async () => {
+  const { controller } = stub({ items: [], food: 12, saturation: 0 })
+  const events = new EventLog(50)
+  const pilot = new Autopilot({ botController: controller, config: normalizeConfig({}), events })
+  pilot.start()
+  try {
+    let noticed = null
+    for (let i = 0; i < 14 && !noticed; i++) {
+      await sleep(150)
+      noticed = events.recent(50).find((event) => event.type === 'autopilot' && /没有食物/.test(event.message))
+    }
+    assert.ok(noticed, 'the missing-food case must be reported instead of silently doing nothing')
+    assert.match(noticed.message, /饥饿 12\/20/)
+  } finally {
+    pilot.stop()
+  }
 })
 
 test('autopilot merges and clamps switches', () => {
@@ -313,6 +360,7 @@ test('autopilot stays quiet when disabled', async () => {
     pilot.stop()
   }
 })
+
 
 
 
