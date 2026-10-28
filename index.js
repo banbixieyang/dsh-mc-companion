@@ -10,6 +10,7 @@
  */
 
 import { Companion } from './lib/mode.js'
+import { installDashboard } from './lib/dashboard.js'
 import { GAME_TOOL_NAMES, gameTools, modeTool } from './lib/tools.js'
 
 /** Stable Loader identity. */
@@ -55,5 +56,13 @@ export function install(ctx, config = {}) {
 
 /** Cordis entry point. */
 export function apply(ctx, config = {}) {
-  return install(ctx, config)
+  const result = install(ctx, config)
+  try {
+    installDashboard({ ctx, companion: result.companion })
+  } catch (error) {
+    // The dashboard is optional: a profile without webServer must still run the
+    // companion tools exactly as before.
+    result.companion.events.push('error', `面板接口未挂载：${error instanceof Error ? error.message : String(error)}`)
+  }
+  return result
 }

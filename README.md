@@ -8,6 +8,14 @@
 
 > 最重要的设计：**模式门控**。插件被加载时只注册一个 `mc_companion_mode` 工具；在用户明确启用模式之前，不存在任何 `mc_*` 游戏动作工具，也不会创建 Bot、连接服务器、读写投影文件或启动定时器。
 
+## 相关仓库
+
+| 仓库 | 内容 |
+| --- | --- |
+| [banbixieyang/dsh-mc-companion](https://github.com/banbixieyang/dsh-mc-companion) | 主插件（本仓库）：Bot、模式门控、工具、投影、26.3 兼容 |
+| [banbixieyang/dsh-mc-companion-preset](https://github.com/banbixieyang/dsh-mc-companion-preset) | Agent 预设「MC 陪伴模式」 |
+| [banbixieyang/dsh-mc-companion-ui](https://github.com/banbixieyang/dsh-mc-companion-ui) | DSH Web 实时面板、工作状态开关、游戏内聊天 UI |
+
 ---
 
 ## 1. 快速开始
@@ -26,12 +34,20 @@
 有两种部署方式，二选一：本节是 **profile 级常驻**（所有会话都能看到 `mc_companion_mode`）；
 如果希望它成为一个可选择的 Agent 模式，直接看 [1.2.1](#121-作为-dsh-agent-模式预设使用)。
 
-依赖已安装在插件目录内（`node_modules/`）。安装 bundle：
+依赖已安装在插件目录内（`node_modules/`）。如果是新克隆的仓库，先安装依赖：
+
+```bash
+git clone https://github.com/banbixieyang/dsh-mc-companion.git
+cd dsh-mc-companion
+npm install
+```
+
+然后用本地绝对路径安装 bundle：
 
 ```text
 plugin_manager
   action: install_bundle
-  target: C:\Users\Lenovo\Documents\deepseek-harness\default-workspace\dsh-mc-companion
+  target: <你的路径>\dsh-mc-companion
 ```
 
 也可以在 DSH 的「设置 → 插件」里从本地目录安装。安装后插件行 id 为 `mc-companion`，bundle 名为 `dsh-mc-companion`。
@@ -47,9 +63,12 @@ plugin_manager
    ```text
    plugin_manager set_bundle target=dsh-mc-companion enabled=false
    ```
-2. 安装预设 bundle（目录与说明见 [dsh-mc-companion-preset](../dsh-mc-companion-preset/README.md)）：
+2. 克隆并安装预设 bundle（仓库：[banbixieyang/dsh-mc-companion-preset](https://github.com/banbixieyang/dsh-mc-companion-preset)）：
+   ```bash
+   git clone https://github.com/banbixieyang/dsh-mc-companion-preset.git
+   ```
    ```text
-   plugin_manager install_bundle target=C:\Users\Lenovo\Documents\deepseek-harness\default-workspace\dsh-mc-companion-preset
+   plugin_manager install_bundle target=<你的路径>\dsh-mc-companion-preset
    ```
 3. 在 DSH 里**新建会话**，在 Agent 预设选择器中选择 **MC 陪伴模式**；
 4. 选择预设只代表“工具可用”，Bot 默认仍离线；对助手说「启用 MC 陪伴模式」后才会调用
@@ -58,6 +77,36 @@ plugin_manager
 > 预设与 profile 级 bundle 二选一：不要再重新启用 `dsh-mc-companion` 全局 bundle，
 > 否则会同时存在两个插件实例（工具重复、模式状态分叉）。已有会话会保留启动时的插件版本，
 > 切换后建议新建会话验证。
+
+### 1.2.2 DSH 实时面板（Client UI）
+
+面板由独立 bundle **`dsh-mc-companion-ui`** 提供（它有自己的 Host 行，client bundle 才能被加载；
+仓库：[banbixieyang/dsh-mc-companion-ui](https://github.com/banbixieyang/dsh-mc-companion-ui)）：
+
+```bash
+git clone https://github.com/banbixieyang/dsh-mc-companion-ui.git
+```
+```text
+plugin_manager install_bundle target=<你的路径>\dsh-mc-companion-ui
+```
+
+- 左侧栏 **「MC 陪伴」**：生命/饥饿/坐标/维度 HUD、启用/连接/断开、跟随输入、
+  工作状态开关（探索 / 伐木 / 采矿 / 打怪）、建造进度、游戏内聊天与手动发言；
+- 输入框下方 **状态条**：当前会话直接看到在线状态、血量、坐标、当前行为、最后一条聊天；
+- **实时 AI 聊天**：默认关闭，打开后用当前默认模型对普通游戏聊天做短回复；
+  像命令的消息会被跳过，**游戏内任何人（包括 owner）都不能通过聊天框命令 Bot**；
+- 工作状态开关和输入框只在 DSH 界面里，玩家无法从游戏内开启。
+
+接口由主插件挂到宿主 webServer（同源、仅回环地址、不另开端口）：
+
+```text
+GET  /api/mc-companion/state
+POST /api/mc-companion/action
+```
+
+> 安装/更新面板 bundle 后刷新页面；左侧栏没有「MC 陪伴」时重启 DSH。
+> **更新预设内主插件**（`dsh-mc-companion` / `dsh-mc-companion-preset`）仍会返回
+> `restart-required`，需要重启才能加载新代码。
 
 ### 1.3 配置
 
