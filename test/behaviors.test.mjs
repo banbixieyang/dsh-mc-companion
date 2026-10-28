@@ -45,6 +45,9 @@ function stubBot ({ blocks = [], health = 20, players = {} } = {}) {
       return asBlock(entry)
     },
     canDigBlock: () => true,
+    // the fake server always confirms: real confirmation comes from a
+    // block_change packet or a drop, see lib/behaviors/helpers.js
+    _serverBlockChangeAt: () => true,
     async dig (block) {
       const entry = world.find((e) => e.x === block.position.x && e.y === block.position.y && e.z === block.position.z)
       if (entry) entry.name = 'air'
@@ -196,3 +199,4 @@ test('default combat targets never include creepers', () => {
   assert.equal(DEFAULT_FIGHT_TARGETS.includes('creeper'), false)
   assert.equal(DEFAULT_FIGHT_TARGETS.includes('zombie'), true)
 })
+
