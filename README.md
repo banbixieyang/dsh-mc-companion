@@ -245,6 +245,7 @@ mc_companion_mode  { action: "enable" | "disable" | "status" }
 | `mc_act` | **全部世界动作**：挖/放/使用/攻击/重生/捡拾 + 自律开关 | `action: break\|place\|use\|attack\|respawn\|collect\|autopilot`, `x/y/z`, `item`, `targets`, `radius`, `force` |
 | `mc_goto` | 走到绝对坐标；卡住/超时/太远都明确报告 | `x`, `y`, `z`, `tolerance`, `timeout_ms`, `force` |
 | `mc_use_block` | 睡床（= 绑定重生点）/ 按按钮等安全方块 | `action: sleep\|activate`, `x`, `y`, `z`, `radius` |
+| `mc_solo` | **单人计划**：自己把一整套目标跑完（生存起步 / 速通开局计时） | `action: start\|stop\|status`, `plan: bootstrap\|speedrun` |
 | `mc_generate_schematic` | 结构化 JSON → `.schem` 投影 | `spec`, `version`, `overwrite` |
 | `mc_build_schematic` | 按投影建造 | `schematic`/`path`, `position`, `rotation`, `dry_run`, `wait_ms`, `onOccupied`, `allow_creative_fill`, `allow_scaffold` |
 | `mc_cancel_build` | 取消当前建造 | `reason` |
@@ -570,6 +571,45 @@ mc_act {action:"break", x:12, y:-60, z:8, force:true}
 
 行为（`mc_behavior`）**永远不带 force**：探索/伐木/采矿/打怪不会因为一次呼叫就变成拆迁队；
 要定点拆除就单点 `mc_act break + force`。
+
+### 3.13 实时视角（"直播"）
+
+Bot 自己的画面可以直接在浏览器里看——用的是 `prismarine-viewer`（three.js + websocket），
+第一人称、跟随 Bot 移动，就是"他在玩"的那个视角。
+
+- 面板顶部按钮 **「打开视角」**（后端动作 `viewer.start` / `viewer.stop`），Bot 上线即自动开启；
+- 地址 `http://127.0.0.1:3010/`，只监听本机回环，不对外暴露；
+- 断开连接或关闭模式会立刻释放端口；端口被占或资源缺失时只记录 `viewer.error`，**不影响 Bot 本体**；
+- 配置：
+
+```yaml
+viewer:
+  enabled: true
+  port: 3010
+  firstPerson: true
+  viewDistance: 6
+```
+
+> 依赖：`prismarine-viewer` + 一个 canvas 实现。本仓库用 `@napi-rs/canvas` 通过
+> `vendor/canvas-shim` 顶替需要本地编译的 `node-canvas`（安装方式见 `scripts/install-viewer.mjs`）。
+
+### 3.14 单人计划（自己玩 / 生存起步 / 速通开局）
+
+`mc_solo` 把"一连串目标"交给 Bot 自己跑完，而不是一次只做一个动作：
+
+| 计划 | 步骤 | 实测 |
+| --- | --- | --- |
+| `bootstrap` | 砍 3 原木 → 木板 → 工作台 → 木棍 → 木镐 → 挖 12 石头 → 石镐 → 熔炉 | 空背包到石镐+熔炉 **54.5s** |
+| `speedrun` | 同样开局，另加铁矿 ×3，**每一步单独计时** | 用来量化"能不能更快" |
+
+- 每一步都**回读背包/世界**验证，不只是相信上一步返回了 ok；
+- 砍树是自适应的：木头掉在地上没收全就再砍一轮，凑够为止；
+- 单步超时 120s，任意时刻 `mc_solo stop` 可中断；
+- 面板上新增 **「单人计划」** 卡片：两个按钮 + 每步 ✓/✗ 与耗时。
+
+上限要说清楚：这是**确定性的任务执行器**，不是通用规划器。它能稳定做到"按剧本把开局打完"，
+做不到"自己找要塞、下界、打末影龙"——那需要世界知识、结构定位和战斗策略，属于后续工作；
+`speedrun` 目前量化的是**开局阶段**，不是完整通关。
 
 ## 4. 投影生成与建造
 

@@ -43,15 +43,20 @@
     "test:behaviors:e2e": "node test/behaviors.integration.mjs",
     "test:navigation": "node test/navigation.test.mjs",
     "test:capabilities": "node test/capabilities.test.mjs",
-    "test:capabilities:e2e": "node test/capabilities.integration.mjs"
+    "test:capabilities:e2e": "node test/capabilities.integration.mjs",
+    "test:viewer:e2e": "node test/viewer.integration.mjs",
+    "test:solo": "node test/solo.test.mjs",
+    "test:solo:e2e": "node test/solo.integration.mjs"
   },
   "dependencies": {
+    "@napi-rs/canvas": "^1.0.13",
     "minecraft-data": "^3.85.0",
     "mineflayer": "^4.39.0",
     "mineflayer-pathfinder": "^2.4.5",
     "prismarine-block": "^1.22.0",
     "prismarine-item": "^1.17.0",
     "prismarine-schematic": "^1.3.0",
+    "prismarine-viewer": "^1.33.0",
     "vec3": "^0.1.10"
   },
   "engines": {

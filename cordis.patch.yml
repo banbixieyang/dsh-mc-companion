@@ -42,6 +42,12 @@
         gotoForceMaxDistance: 0
         gotoTimeoutMs: 60000
         # 空窗自律：无人指挥时的基础反应（只吃/打/逃/捡/重生，不挖方块、不打玩家）
+        # 实时视角（prismarine-viewer）；面板上的打开视角按钮会打开这个地址
+        viewer:
+          enabled: true
+          port: 3010
+          firstPerson: true
+          viewDistance: 6
         autopilot:
           enabled: true
           eat: true
@@ -53,6 +59,7 @@
           pickupRadius: 8
           respawn: true
           followOwner: false
+
 
 
 
