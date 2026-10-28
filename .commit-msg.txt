@@ -1,0 +1,8 @@
+fix(prompt): render the autopilot line in promptText, not in facts()
+
+The idle-reflex line was pushed into a `lines` array that only exists inside
+promptText(), so any session where the autopilot had reacted crashed with
+"lines is not defined" - which took down mode enable as well.
+
+The line now travels through the facts object and is rendered (only while
+online) where the other prompt lines are built.
