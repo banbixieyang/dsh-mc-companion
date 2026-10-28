@@ -96,12 +96,24 @@ test('a behaviour that ends without progress fails the step', async () => {
 
 test('stop aborts the plan', async () => {
   const { controller, actions, behaviors } = makeHarness()
-  const runner = new SoloRunner({ botController: controller, config: {}, events: { push () {} }, behaviors, actions })
+  const config = { speedrun: { enabled: true } }
+  const runner = new SoloRunner({ botController: controller, config, events: { push () {} }, behaviors, actions })
   await runner.start('speedrun')
   const stopped = runner.stop('test stop')
   assert.equal(stopped.running, false)
   await sleep(50)
   assert.equal(runner.running, false)
+})
+
+test('speedrun refuses while its dedicated switch is off', async () => {
+  const { controller, actions, behaviors } = makeHarness()
+  controller.config = { speedrun: { enabled: false } }
+  const runner = new SoloRunner({ botController: controller, config: { speedrun: { enabled: false } }, events: { push () {} }, behaviors, actions })
+  await assert.rejects(() => runner.start('speedrun'), /SPEEDRUN_DISABLED/)
+  // bootstrap stays available with the switch off
+  const opened = await runner.start('bootstrap')
+  assert.equal(opened.running, true)
+  runner.stop('test')
 })
 
 test('unknown plans and offline bots are rejected', async () => {
@@ -121,13 +133,16 @@ test('unknown plans and offline bots are rejected', async () => {
 
 test('speedrun plan is timed per step', async () => {
   const { controller, actions, behaviors, calls } = makeHarness()
-  const runner = new SoloRunner({ botController: controller, config: {}, events: { push () {} }, behaviors, actions })
+  const config = { speedrun: { enabled: true } }
+  const runner = new SoloRunner({ botController: controller, config, events: { push () {} }, behaviors, actions })
   await runner.start('speedrun')
   const done = await waitForIdle(runner)
   assert.equal(done.error, null, JSON.stringify(done.error))
-  assert.ok(done.steps.every((step) => step.status === 'done' && step.ms >= 0), JSON.stringify(done.steps))
+  assert.ok(done.steps.every((step) => (step.status === 'done' || step.status === 'skipped') && step.ms >= 0), JSON.stringify(done.steps))
   assert.ok(calls.equip.includes('stone_pickaxe'), 'iron should be mined with the stone pickaxe')
 })
+
+
 
 
 

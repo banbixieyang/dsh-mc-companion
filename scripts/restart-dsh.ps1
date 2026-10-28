@@ -64,8 +64,8 @@ for ($attempt = 0; $attempt -lt 60 -and -not $newBuild; $attempt++) {
       if ($r.StatusCode -ne 200) { continue }
       $state = $r.Content | ConvertFrom-Json
       $tools = @($state.tools)
-      $hasAutopilot = $null -ne $state.autopilot
-      Write-Log ("port {0}: version={1} tools={2} autopilot={3}" -f $port, $state.version, $tools.Count, $hasAutopilot)
+      $hasAutopilot = $null -ne $state.autopilot`n      $hasWorld = $null -ne $state.world`n      $hasSolo = $null -ne $state.solo`n      $hasViewer = $null -ne $state.viewer
+      Write-Log ("port {0}: version={1} tools={2} autopilot={3} world={4} solo={5} viewer={6}" -f $port, $state.version, $tools.Count, $hasAutopilot, $hasWorld, $hasSolo, $hasViewer)
       if ($hasAutopilot -and $tools.Count -ge 16) {
         $newBuild = $true
         Write-Log ("OK new build loaded ({0} tools, autopilot present)" -f $tools.Count)
@@ -83,3 +83,4 @@ if (-not $newBuild) {
   Write-Log 'WARN could not confirm the new build within 120s; check the panel manually'
 }
 Write-Log 'done'
+
