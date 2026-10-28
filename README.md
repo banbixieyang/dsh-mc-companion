@@ -247,7 +247,8 @@ mc_companion_mode  { action: "enable" | "disable" | "status" }
 | `mc_use_block` | 睡床（= 绑定重生点）/ 按按钮等安全方块 | `action: sleep\|activate`, `x`, `y`, `z`, `radius` |
 | `mc_solo` | **单人计划**：自己把一整套目标跑完（生存起步 / 速通开局计时） | `action: start\|stop\|status`, `plan: bootstrap\|speedrun` |
 | `mc_generate_schematic` | 结构化 JSON → `.schem` 投影 | `spec`, `version`, `overwrite` |
-| `mc_build_schematic` | 按投影建造 | `schematic`/`path`, `position`, `rotation`, `dry_run`, `wait_ms`, `onOccupied`, `allow_creative_fill`, `allow_scaffold` |
+| `mc_build_schematic` | 按投影建造（`auto_gather` 可先自采材料） | `schematic`/`path`, `position`, `rotation`, `dry_run`, `wait_ms`, `onOccupied`, `allow_creative_fill`, `allow_scaffold`, `auto_gather` |
+| `mc_gather` | **采集材料**：给"方块名→数量"，自己砍树/挖矿/合成/烧炼/翻箱子 | `required`, `allow_creative_fill`, `timeoutMs` |
 | `mc_cancel_build` | 取消当前建造 | `reason` |
 | `mc_memory` | 长期记忆：地点/建筑/纠正/教训 | `action: remember\|recall\|forget`, `kind`, `text`, `query`, `id`, `limit` |
 | `mc_presence` | 存在感：主动提醒的静默/恢复 | `action: status\|quiet\|normal` |
@@ -610,6 +611,39 @@ viewer:
 上限要说清楚：这是**确定性的任务执行器**，不是通用规划器。它能稳定做到"按剧本把开局打完"，
 做不到"自己找要塞、下界、打末影龙"——那需要世界知识、结构定位和战斗策略，属于后续工作；
 `speedrun` 目前量化的是**开局阶段**，不是完整通关。
+
+### 3.15 建筑工坊：材料自己搞，投影自己来
+
+**生存模式**：建造前先算料，缺什么就去搞什么。
+
+```text
+mc_build_schematic {schematic:"small_house", auto_gather:true}
+→ 预检 MISSING_MATERIALS {"oak_planks":{"need":116,"have":0}}
+→ 自动：砍树 → 合成木板 → 挖石头 → 烧炼 → 翻附近箱子
+→ 重新预检 → 开始放置
+```
+
+`mc_gather` 可单独用，清单直给：
+
+```text
+mc_gather {required:{"oak_planks":64,"cobblestone":32,"iron_ingot":8}}
+→ {ok, mode:"survival", obtained, stillMissing, steps:[{note:"砍树 8 个"},{note:"合成 oak_planks ×64"},...]}
+```
+
+来源映射（`lib/materials.js`）：原木→砍树；木板/木棍/工作台/熔炉→合成；石头/圆石/深板岩→挖；
+矿石→挖对应矿；锭/玻璃→烧炼；其余→**翻附近箱子**；创造+`allow_creative_fill`→直接跳过。
+
+**创造模式**：`allow_creative_fill:true` 时不需要材料，建造直接补块。
+
+**投影来源（三条路）**
+
+1. **UI 拖入**：面板「建筑工坊」把 `.schem / .schematic / .litematic` 拖进虚线框（或点"选择文件"），
+   走 `POST /api/mc-companion/upload`（仅回环 + 同源，上限 16MB），落到 schematics 目录并出现在列表里；
+2. **让 AI 生成**：面板"让 AI 生成一栋"走 `build.generate` 预设；模型侧用 `mc_generate_schematic`
+   描述任意结构（`{name,size,palette,layers}`）；
+3. **自带文件**：直接把文件放进 `data/mc-companion/schematics/`。
+
+列表里的每个投影后面都有「采集并建造」（生存）/「直接建造」（创造）。
 
 ## 4. 投影生成与建造
 

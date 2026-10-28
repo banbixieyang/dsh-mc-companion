@@ -133,7 +133,7 @@ test('dashboard actions enable the mode and start a work behaviour', async () =>
   assert.equal(companion.config.behaviors.woodcut, false)
 })
 
-test('dashboard registers the two same-origin API routes', () => {
+test('dashboard registers the three same-origin API routes', () => {
   const companion = fakeCompanion()
   const { ctx, routes } = fakeCtx()
   const dashboard = installDashboard({ ctx, companion })
@@ -141,7 +141,9 @@ test('dashboard registers the two same-origin API routes', () => {
   assert.deepEqual(routes.map((route) => route.path).sort(), [
     '/api/mc-companion/action',
     '/api/mc-companion/state',
+    '/api/mc-companion/upload',
   ])
+
 
   const stateRoute = routes.find((route) => route.path === '/api/mc-companion/state')
   let status = 0

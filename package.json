@@ -46,7 +46,9 @@
     "test:capabilities:e2e": "node test/capabilities.integration.mjs",
     "test:viewer:e2e": "node test/viewer.integration.mjs",
     "test:solo": "node test/solo.test.mjs",
-    "test:solo:e2e": "node test/solo.integration.mjs"
+    "test:solo:e2e": "node test/solo.integration.mjs",
+    "test:gather:e2e": "node test/gather.integration.mjs",
+    "test:speedrun:e2e": "node test/speedrun.integration.mjs"
   },
   "dependencies": {
     "@napi-rs/canvas": "^1.0.13",
