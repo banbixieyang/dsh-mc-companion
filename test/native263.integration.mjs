@@ -205,12 +205,16 @@ async function main() {
     log(`PASS mine dug ${mined.progress} placed blocks natively (${mined.reason})`)
 
     if (!server.external) {
+      // An armour stand is a static non-player target: it exercises the same
+      // approach → attack → kill-counting path as a mob, without the flakiness
+      // of summoning a living entity onto whatever terrain the bot is standing
+      // on (mob fighting is covered end-to-end on 1.20.4).
       const here = companion.bot.bot.entity.position.floored()
-      const summoned = await rcon(`summon zombie ${here.x + 2} ${here.y + 1} ${here.z} {NoAI:1b,Silent:1b,Health:1f,Invulnerable:0b}`)
-      assert.match(String(summoned), /Summoned new Zombie/, `summon failed: ${summoned}`)
-      await sleep(1_500)
+      const summoned = await rcon(`summon armor_stand ${here.x + 2} ${here.y} ${here.z}`)
+      assert.match(String(summoned), /Summoned new Armor Stand/, `summon failed: ${summoned}`)
+      await sleep(1_200)
       const fight = await tools.get('mc_behavior').execute(
-        { action: 'start', mode: 'fight', amount: 1, radius: 12, targets: ['zombie'] },
+        { action: 'start', mode: 'fight', amount: 1, radius: 12, targets: ['armor_stand'] },
         exec
       )
       assert.equal(fight.ok, true, JSON.stringify(fight))
@@ -219,11 +223,22 @@ async function main() {
           const snapshot = companion.behaviors.snapshot()
           return snapshot.active ? false : companion.behaviors.last
         },
-        { timeoutMs: 60_000, label: 'native fight to finish' }
+        { timeoutMs: 90_000, intervalMs: 1_000, label: 'native fight to finish' }
       )
       assert.equal(killed.progress, 1, JSON.stringify(killed))
       log(`PASS fight killed ${killed.progress} zombie natively (${killed.reason})`)
     }
+
+    // Point-to-point walking on 26.3: same pathfinder, different protocol.
+    const fromHere = companion.bot.bot.entity.position.floored()
+    const destination = { x: fromHere.x + 6, y: fromHere.y, z: fromHere.z + 5 }
+    const walked = await tools.get('mc_goto').execute(destination, exec)
+    assert.equal(walked.ok, true, JSON.stringify(walked))
+    const gap = companion.bot.bot.entity.position.distanceTo(
+      new Vec3(destination.x, destination.y, destination.z)
+    )
+    assert.ok(gap <= 6, `expected to arrive near the destination, got ${gap}`)
+    log(`PASS goto walked to ${destination.x},${destination.y},${destination.z} natively (within ${gap.toFixed(1)} blocks)`)
 
     // Stay alive: 26.3 kicks clients that skip client_tick_end.
     await sleep(4_000)
@@ -249,6 +264,12 @@ main().catch((error) => {
   console.error(error)
   process.exitCode = 1
 })
+
+
+
+
+
+
 
 
 

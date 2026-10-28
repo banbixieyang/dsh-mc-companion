@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * End-to-end acceptance test against a disposable local Paper server
- * (127.0.0.1:25565, online-mode=false, superflat, creative).
+ * (127.0.0.1:25570, online-mode=false, superflat, creative).
  *
  * It drives the real plugin through a fake Cordis context, so the tested path
  * is exactly the one DSH uses:
@@ -32,7 +32,7 @@ import { startServer } from '../scripts/start-test-server.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const EXAMPLE = path.join(HERE, '..', 'examples', 'small_house.json')
-const PORT = Number(process.env.MC_TEST_PORT ?? 25565)
+const PORT = Number(process.env.MC_TEST_PORT ?? 25570)
 const log = (...args) => console.log('[e2e]', ...args)
 
 function sleep(ms) {
@@ -296,4 +296,5 @@ main().catch((error) => {
   console.error(error)
   process.exitCode = 1
 })
+
 

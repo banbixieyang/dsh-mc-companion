@@ -241,6 +241,10 @@ mc_companion_mode  { action: "enable" | "disable" | "status" }
 | `mc_status` | 模式、Bot、血量、位置、跟随、建造、最近事件 | `include_events`, `event_limit` |
 | `mc_events` | 读取事件流（聊天/死亡/被踢/建造进度…） | `limit`, `since_seq`, `type_prefix` |
 | `mc_behavior` | **自主行为**：探索/伐木/采矿/打怪，一次调用跑到底；可暂停/继续 | `action: start\|stop\|pause\|resume\|status`, `mode`, `amount`, `targets`, `radius`, `maxDurationMs` |
+| `mc_inventory` | **全部物品操作**：查看/装备/进食/丢弃/合成/烧炼/箱子 | `action: list\|equip\|eat\|drop\|craft\|smelt\|container`, `item`, `count`, `destination`, `input`, `fuel`, `x/y/z` |
+| `mc_act` | **全部世界动作**：挖/放/使用/攻击/重生/捡拾 + 自律开关 | `action: break\|place\|use\|attack\|respawn\|collect\|autopilot`, `x/y/z`, `item`, `targets`, `radius` |
+| `mc_goto` | 走到绝对坐标；卡住/超时/太远都明确报告 | `x`, `y`, `z`, `tolerance`, `timeout_ms` |
+| `mc_use_block` | 睡床（= 绑定重生点）/ 按按钮等安全方块 | `action: sleep\|activate`, `x`, `y`, `z`, `radius` |
 | `mc_generate_schematic` | 结构化 JSON → `.schem` 投影 | `spec`, `version`, `overwrite` |
 | `mc_build_schematic` | 按投影建造 | `schematic`/`path`, `position`, `rotation`, `dry_run`, `wait_ms`, `onOccupied`, `allow_creative_fill`, `allow_scaffold` |
 | `mc_cancel_build` | 取消当前建造 | `reason` |
@@ -422,6 +426,112 @@ mc_memory {action:"recall", query:"正前方"}
 > 插件的收件箱与标注逻辑可以直接复用。
 
 ---
+
+### 3.8 mc_goto / mc_use_block：走到坐标、睡床绑重生点
+
+```text
+mc_goto {x:120, y:-60, z:-33}
+→ {ok:true, from:{...}, to:{...}, at:{...}, distance:0.8, elapsedMs:18400}
+
+mc_goto {x:900, y:-60, z:-33}
+→ {ok:false, error:"MC_GOTO_TOO_FAR", message:"目标直线距离 780 格，超过单次上限 128 格；请分段走（每段 <= 128 格）。"}
+
+mc_use_block {action:"sleep"}
+→ {ok:true, slept:true, bed:{name:"red_bed", position:{x:16,y:-60,z:6}}}
+   （服务器已把这张床记为重生点；白天返回 SLEEP_FAILED 并带服务器原话）
+```
+
+**mc_goto** 只走不挖、不搭方块（寻路规则里 `canDig=false`、`allow1by1towers=false`）。
+它不会“挂着不动”，三种失败都能被模型直接读懂：
+
+| 结果 | 含义 | 建议 |
+| --- | --- | --- |
+| `MC_PATH_STUCK` | 原地打转 > 5s，或寻路已停但没到 | 地形过不去（水/墙/断层），换目标点或分段 |
+| `MC_GOTO_TIMEOUT` | 超过 `timeout_ms`（默认 60s） | 拆成几段 |
+| `MC_GOTO_TOO_FAR` | 超过 `gotoMaxDistance`（默认 128 格） | 分段，每段 ≤ 128 |
+| `MC_BEHAVIOR_BUSY` / `MC_BUILD_BUSY` | 行为或建造正在改写寻路目标 | 先 `stop` / `mc_cancel_build` |
+
+跨版本、大地形、长距离仍有失败风险——这是路径规划本身的限制，不是协议问题。
+1.20.4 与 26.3 都实测过 12 格级往返；更远的建议分段（每段 64–128 格）。
+
+**mc_use_block**：
+
+- `action:"sleep"` → 找床（或给床坐标）→ 走过去 → 入睡。睡着后服务器把床记为重生点，
+  实体数据里 `SpawnX/SpawnZ` 变成床（床头）位置。白天/被占用/没床分别返回
+  `SLEEP_FAILED` / `BED_NOT_FOUND` / `BED_UNREACHABLE`。
+- `action:"activate"` → 仅按钮 / 拉杆 / 门 / 活板门 / 栅栏门 / 钟 / 踏板 / 音符盒；
+  **箱子等容器一律拒绝**（`BLOCK_NOT_ALLOWED`），Bot 不会擅自翻别人的箱子。
+
+行为运行期间这两个工具会拒绝执行：它们和 `mc_behavior` 都在写同一个寻路目标，抢起来两边都会“看起来坏了”。
+
+### 3.9 mc_inventory / mc_act：玩家能做的，它都能做
+
+“独立生存甚至速通”需要的动词都在这里，两个工具覆盖，避免工具表膨胀：
+
+| 能力 | 调用 | 说明 |
+| --- | --- | --- |
+| 看背包 | `mc_inventory {action:"list"}` | 手持/护甲/食物数/方块数/空位/物品列表 |
+| 装备 | `mc_inventory {action:"equip", item:"iron_pickaxe"}` | 也可只给 `destination:"head"` 自动找头盔 |
+| 吃东西 | `mc_inventory {action:"eat"}` | 饥饿满时明确返回 `skipped`，不浪费食物 |
+| 合成 | `mc_inventory {action:"craft", item:"chest", count:1}` | 2x2 自动用背包；需要工作台时自己找并走过去 |
+| 烧炼 | `mc_inventory {action:"smelt", input:"iron_ore", fuel:"coal"}` | 找熔炉、放料、等产物、取出 |
+| 箱子 | `mc_inventory {action:"container", containerAction:"take", item:"iron_ingot", x,y,z}` | list/take/put |
+| 挖方块 | `mc_act {action:"break", x,y,z}` | 保护名单与“玩家附近”会拒绝 |
+| 放方块 | `mc_act {action:"place", x,y,z, item:"stone"}` | 自动找依附面 |
+| 用物品 | `mc_act {action:"use"}` | 桶/弓/骨粉等手持物品 |
+| 攻击 | `mc_act {action:"attack", radius:4}` | **绝不攻击玩家** |
+| 重生 | `mc_act {action:"respawn"}` | 活着时返回 `skipped` |
+| 捡东西 | `mc_act {action:"collect", radius:8}` | 走到掉落物旁边让服务器发放 |
+
+失败原因都分开报，不糊成一个 `failed`：`ITEM_NOT_FOUND` / `NO_RECIPE` / `NO_TABLE` /
+`MISSING_MATERIALS` / `CRAFT_NOT_CONFIRMED` / `NO_FURNACE` / `NO_CONTAINER` /
+`BLOCK_PROTECTED` / `BLOCK_NEAR_PLAYER` / `NOT_A_BLOCK` / `NO_TARGET`。
+
+> 合成在 1.20.4 实机验证：原木→木板（2x2）、木板→木棍（2x2）、工作台合成箱子（3x3）；
+> 连续合成之间会等待窗口同步，否则 mineflayer 会在旧网格上点击并吞材料。
+> 合成结果还会**回读背包确认**，不会“报成功但东西没进包”。
+
+### 3.10 空窗自律（autopilot）：没人指挥时的基础反应
+
+模型两个回合之间，Bot 也能自己活下去。默认开启，全部反应都是**非破坏性**的：
+
+| 开关 | 默认 | 行为 |
+| --- | --- | --- |
+| `enabled` | true | 总开关 |
+| `eat` / `eatThreshold` | true / 16 | 饥饿值 ≤ 阈值且有食物就吃 |
+| `defend` | true | 受到伤害后反击附近敌对生物（**不攻击玩家**） |
+| `flee` / `fleeHealth` | true / 6 | 血量 ≤ 阈值且有敌对生物靠近就拉开距离 |
+| `pickup` / `pickupRadius` | true / 8 | 空闲时走过去捡掉落物 |
+| `respawn` | true | 死亡后自动重生（即使行为正在跑） |
+| `followOwner` / `followOwnerDistance` | false / 16 | 可选：离主人太远自动跟上 |
+
+- 只在**空闲**时行动：行为、建造、`mc_goto`、`mc_use_block` 运行期间自律会让路（否则两个寻路目标互相打架）；
+- 每次触发写一条 `autopilot` 事件并进入实时提示上下文（“自律反应（x 秒前）：吃了 bread”）；
+- 从 UI 或工具都能改：`mc_act {action:"autopilot", autopilot:{defend:false}}`。
+
+```yaml
+autopilot:
+  enabled: true
+  eat: true
+  eatThreshold: 16
+  defend: true
+  flee: true
+  fleeHealth: 6
+  pickup: true
+  pickupRadius: 8
+  respawn: true
+  followOwner: false
+```
+
+### 3.11 UI：面板上能直接点
+
+`dsh-mc-companion-ui` 的面板新增两块卡片（Host 侧 API 同步扩展）：
+
+- **空窗自律**：总开关 + 六个分项开关 + “最近一次自律反应”；
+- **背包与动作**：手持/食物/方块/空位 + 吃东西、拿武器、戴头盔、打最近的怪、捡东西、重生按钮。
+
+新增的面板动作：`autopilot.set`、`inventory.list|eat|equip|craft|drop`、`act.attack|respawn|collect|break|place`。
+游戏内聊天依然不能当命令用——面板是 DSH 用户的控制面，游戏内玩家只能聊天。
 
 ## 4. 投影生成与建造
 

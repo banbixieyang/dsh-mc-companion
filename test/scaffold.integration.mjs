@@ -21,7 +21,7 @@ import { createFakeCtx, execContext } from './helpers/fake-ctx.mjs'
 import { prepareServer } from '../scripts/setup-test-server.mjs'
 import { startServer } from '../scripts/start-test-server.mjs'
 
-const PORT = Number(process.env.MC_TEST_PORT ?? 25565)
+const PORT = Number(process.env.MC_TEST_PORT ?? 25570)
 const log = (...args) => console.log('[scaffold-e2e]', ...args)
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -41,7 +41,7 @@ async function main() {
   const server = await startServer({ port: PORT, resetWorld: true })
   log(`server ready on 127.0.0.1:${PORT}${server.external ? ' (existing — cannot drive console, aborting)' : ''}`)
   if (server.external) {
-    throw new Error('scaffold test needs to own the server (console fill/tp); stop other servers on 25565 first')
+    throw new Error('scaffold test needs to own the server (console fill/tp); stop other servers on 25570 first')
   }
 
   const cwd = await mkdtemp(path.join(tmpdir(), 'mc-companion-scaffold-'))
@@ -148,3 +148,4 @@ main().catch((error) => {
   console.error(error)
   process.exitCode = 1
 })
+

@@ -36,4 +36,21 @@
         behaviorMaxDurationMs: 120000
         behaviorProtectPlayers: true
         behaviorProtectDistance: 3
+        # 单次 mc_goto 的最大直线距离与默认时限
+        gotoMaxDistance: 128
+        gotoTimeoutMs: 60000
+        # 空窗自律：无人指挥时的基础反应（只吃/打/逃/捡/重生，不挖方块、不打玩家）
+        autopilot:
+          enabled: true
+          eat: true
+          eatThreshold: 16
+          defend: true
+          flee: true
+          fleeHealth: 6
+          pickup: true
+          pickupRadius: 8
+          respawn: true
+          followOwner: false
+
+
 

@@ -51,14 +51,19 @@ async function until (fn, { timeoutMs = 60_000, intervalMs = 400, label = 'condi
 
 async function main () {
   await ensureServerProperties(propertiesFile, MOB_OVERRIDES)
-  const server = await startServer({ resetWorld: true })
+  let server = await startServer({ resetWorld: true })
+  if (server.external) {
+    // The previous suite may still be tearing its server down; wait once.
+    await sleep(6_000)
+    server = await startServer({ resetWorld: true })
+  }
   if (server.external) {
     // The combat step needs the mob settings above, and those only apply on
     // server start — a server that is already running would silently cull the
     // summoned zombie and the failure would look like a bug in fight mode.
     throw new Error(
       'MC_TEST_SERVER_RUNNING: 该测试需要自己启动服务器（要改写 difficulty / spawn-* 才能让生物不被清除）。' +
-      '请先停掉占用 127.0.0.1:25565 的服务器再运行。'
+      '请先停掉占用测试端口（默认 25570）的服务器再运行。'
     )
   }
   log(`server started on 127.0.0.1:${server.port}`)
@@ -178,6 +183,57 @@ async function main () {
     assert.equal(companion.behaviors.snapshot().mode, 'mine')
     await behavior.execute({ action: 'stop', reason: 'cooperation check' }, exec)
 
+    // ---- mc_goto: point-to-point walking --------------------------------
+    const goto = tools.get('mc_goto')
+    assert.ok(goto, 'mc_goto must be registered while the mode is on')
+    const here = bot.entity.position.floored()
+    const destination = { x: here.x + 8, y: here.y, z: here.z + 6 }
+    const walked2 = await goto.execute(destination, exec)
+    assert.equal(walked2.ok, true, JSON.stringify(walked2))
+    const arrived = bot.entity.position.distanceTo(new Vec3(destination.x, destination.y, destination.z))
+    assert.ok(arrived <= 6, `expected to be near the destination, got ${arrived}`)
+    log(`PASS goto walked to ${destination.x},${destination.y},${destination.z} (within ${arrived.toFixed(1)} blocks)`)
+
+    const tooFar = await goto.execute({ x: destination.x + 900, y: destination.y, z: destination.z }, exec)
+    assert.equal(tooFar.ok, false)
+    assert.equal(tooFar.error, 'MC_GOTO_TOO_FAR', JSON.stringify(tooFar))
+    log('PASS goto refuses a trip beyond gotoMaxDistance and says to split it')
+
+    // ---- mc_use_block: sleep = respawn point ----------------------------
+    const useBlock = tools.get('mc_use_block')
+    assert.ok(useBlock, 'mc_use_block must be registered while the mode is on')
+    const bedBase = bot.entity.position.floored()
+    const bed = { x: bedBase.x + 2, y: bedBase.y, z: bedBase.z }
+    await rcon(`setblock ${bed.x} ${bed.y} ${bed.z} minecraft:red_bed[part=foot,facing=north]`)
+    await rcon(`setblock ${bed.x} ${bed.y} ${bed.z - 1} minecraft:red_bed[part=head,facing=north]`)
+    await rcon('time set midnight')
+    await sleep(1_200)
+    const slept = await useBlock.execute({ action: 'sleep', x: bed.x, y: bed.y, z: bed.z }, exec)
+    assert.equal(slept.ok, true, JSON.stringify(slept))
+    assert.equal(slept.slept, true)
+    const spawnX = await rcon(`data get entity Companion SpawnX`)
+    const spawnZ = await rcon(`data get entity Companion SpawnZ`)
+    const numberFrom = (text) => Number(/(-?\d+)\s*$/.exec(String(text))?.[1] ?? NaN)
+    // The server stores the bed *head* (one block off the foot) as the spawn.
+    assert.ok(Math.abs(numberFrom(spawnX) - bed.x) <= 1, `spawn X should be at the bed, got ${spawnX}`)
+    assert.ok(Math.abs(numberFrom(spawnZ) - bed.z) <= 1, `spawn Z should be at the bed, got ${spawnZ}`)
+    log(`PASS sleep bound the respawn point to the bed (spawn ${numberFrom(spawnX)},${numberFrom(spawnZ)} / bed ${bed.x},${bed.z})`)
+
+    // ---- mc_use_block: activate a safe block ----------------------------
+    const button = { x: bed.x, y: bed.y, z: bed.z + 2 }
+    await rcon(`setblock ${button.x} ${button.y} ${button.z} minecraft:oak_button[face=floor]`)
+    await sleep(800)
+    const pressed = await useBlock.execute({ action: 'activate', x: button.x, y: button.y, z: button.z }, exec)
+    assert.equal(pressed.ok, true, JSON.stringify(pressed))
+    log('PASS activate pressed an oak button')
+
+    const chest = { x: button.x + 1, y: button.y, z: button.z }
+    await rcon(`setblock ${chest.x} ${chest.y} ${chest.z} minecraft:chest`)
+    await sleep(500)
+    const refusedChest = await useBlock.execute({ action: 'activate', x: chest.x, y: chest.y, z: chest.z }, exec)
+    assert.equal(refusedChest.ok, false)
+    assert.equal(refusedChest.error, 'BLOCK_NOT_ALLOWED', JSON.stringify(refusedChest))
+    log('PASS activate refuses to open a chest')
     // ---- token economy -------------------------------------------------
     const behaviorEvents = companion.events.recent(400).filter((event) => event.type === 'behavior')
     assert.ok(behaviorEvents.length <= 20, `behaviour events should stay small, got ${behaviorEvents.length}`)
@@ -210,6 +266,10 @@ main().catch((error) => {
   console.error(error)
   process.exitCode = 1
 })
+
+
+
+
 
 
 

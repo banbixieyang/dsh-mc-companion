@@ -1,6 +1,6 @@
 {
   "name": "dsh-mc-companion",
-  "version": "0.3.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "description": "Minecraft AI companion for DeepSeek Harness: headless Mineflayer bot, mode-gated tools, follow/chat, schematic building and autonomous explore/woodcut/mine/fight behaviours. Speaks Minecraft 1.20.4 and 26.3 (protocol 777) natively.",
@@ -26,7 +26,7 @@
     "postinstall": "node scripts/install-263-compat.mjs",
     "compat:263": "node scripts/install-263-compat.mjs",
     "compat:263:check": "node scripts/install-263-compat.mjs --check",
-    "test": "node test/gating.test.mjs && node test/status-context.test.mjs && node test/tasks.test.mjs && node test/memory.test.mjs && node test/proactive.test.mjs && node test/chat.test.mjs && node test/schematic.test.mjs && node test/builder.test.mjs && node test/scaffold.test.mjs && node test/behaviors.test.mjs && node test/compat263.test.mjs && node test/dashboard.test.mjs",
+    "test": "node test/gating.test.mjs && node test/schematic.test.mjs && node test/builder.test.mjs && node test/scaffold.test.mjs && node test/behaviors.test.mjs && node test/navigation.test.mjs && node test/capabilities.test.mjs && node test/dashboard.test.mjs && node test/status-context.test.mjs && node test/compat263.test.mjs",
     "test:gate": "node test/gating.test.mjs",
     "eval": "node test/eval/run.mjs",
     "test:compat263": "node test/compat263.test.mjs",
@@ -40,7 +40,10 @@
     "probe:26": "node tools/probe-263.mjs",
     "verify:26": "node tools/mcdata263/verify-263.mjs",
     "test:behaviors": "node test/behaviors.test.mjs",
-    "test:behaviors:e2e": "node test/behaviors.integration.mjs"
+    "test:behaviors:e2e": "node test/behaviors.integration.mjs",
+    "test:navigation": "node test/navigation.test.mjs",
+    "test:capabilities": "node test/capabilities.test.mjs",
+    "test:capabilities:e2e": "node test/capabilities.integration.mjs"
   },
   "dependencies": {
     "minecraft-data": "^3.85.0",

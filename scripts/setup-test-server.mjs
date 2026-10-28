@@ -19,7 +19,7 @@ const JAR_URL =
 
 export const SERVER_PROPERTIES = {
   'server-ip': '127.0.0.1',
-  'server-port': '25565',
+  'server-port': '25570',
   'online-mode': 'false',
   'enforce-secure-profile': 'false',
   'level-type': 'flat',
@@ -68,7 +68,7 @@ export async function prepareServer() {
   // Merge, so the RCON block the test harness needs survives a reused world.
   await ensureServerProperties(path.join(SERVER_DIR, 'server.properties'), {
     ...SERVER_PROPERTIES,
-    ...rconProperties(25575)
+    ...rconProperties(25580)
   })
   return { dir: SERVER_DIR, jar: JAR }
 }
@@ -78,5 +78,6 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   console.log(`[setup] ready: ${server.dir}`)
   console.log('[setup] start it with: node scripts/start-test-server.mjs')
 }
+
 
 

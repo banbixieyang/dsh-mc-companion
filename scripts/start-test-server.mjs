@@ -11,7 +11,7 @@ import path from 'node:path'
 import { RCON_PASSWORD, rconCommand } from './rcon.mjs'
 import { fileURLToPath } from 'node:url'
 
-export const RCON_PORT = 25575
+export const RCON_PORT = 25580
 export const SERVER_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '.test-server')
 export const JAR = path.join(SERVER_DIR, 'paper-1.20.4-499.jar')
 
@@ -43,7 +43,7 @@ export async function portOpen(port, host = '127.0.0.1', timeoutMs = 500) {
  * Start (or reuse) the test server.
  * @returns {Promise<{ port: number, external: boolean, stop: () => Promise<void>, write: (line: string) => void, logs: string[] }>}
  */
-export async function startServer({ port = 25565, timeoutMs = 180_000, onLog, resetWorld: reset = false } = {}) {
+export async function startServer({ port = 25570, timeoutMs = 180_000, onLog, resetWorld: reset = false } = {}) {
   if (await portOpen(port)) {
     return {
       port,
@@ -142,6 +142,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   })
   await new Promise(() => {})
 }
+
 
 
 
