@@ -76,6 +76,7 @@ async function main () {
     username: 'Companion',
     version: '1.20.4',
     autoConnect: false,
+    viewer: { enabled: false }, // the running host owns :3010
     autoFollow: false,
     behaviors: { explore: true, woodcut: true, mine: true, fight: true },
     behaviorRadius: 16,

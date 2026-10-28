@@ -65,6 +65,7 @@ async function main () {
     username: 'Companion',
     version: '1.20.4',
     autoConnect: false,
+    viewer: { enabled: false }, // the running host owns :3010
     autoFollow: false,
     allowCreativeFill: true,
     autopilot: { enabled: false } // deterministic unless a step turns it on

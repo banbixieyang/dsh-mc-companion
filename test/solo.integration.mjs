@@ -46,6 +46,7 @@ async function main () {
     username: 'SoloBot',
     version: '1.20.4',
     autoConnect: false,
+    viewer: { enabled: false }, // the running host owns :3010
     autoFollow: false,
     autopilot: { enabled: false },
     behaviors: { explore: false, woodcut: true, mine: true, fight: false }

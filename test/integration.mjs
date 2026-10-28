@@ -111,6 +111,7 @@ async function main() {
     auth: 'offline',
     owner: 'Owner',
     autoConnect: false,
+    viewer: { enabled: false }, // the running host owns :3010
     autoFollow: true,
     followRadius: 2,
     connectTimeoutMs: 25_000,
