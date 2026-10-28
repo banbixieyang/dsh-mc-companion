@@ -1,0 +1,39 @@
+# dsh-mc-companion — one profile-level Host row.
+#
+# Load order matters only in that this row is inserted after the base profile
+# bundles; the plugin itself registers exactly one tool (`mc_companion_mode`)
+# at load time and nothing else. Enable the bundle with plugin_manager
+# `install_bundle` (or set_bundle), not by editing this file into the profile.
+- insert:
+    - id: mc-companion
+      name: dsh-mc-companion
+      config:
+        host: 127.0.0.1
+        port: 25565
+        username: Companion
+        auth: offline
+        owner: ''
+        autoVersionFallback: true
+        followRadius: 3
+        autoFollow: true
+        autoConnect: true
+        schematicVersion: 1.20.4
+        buildSpeed: 6
+        allowCreativeFill: false
+        allowScaffold: true
+        scaffoldBudget: 16
+        scaffoldBlocks: [dirt, cobblestone, stone, oak_planks]
+        tickEndCompat: auto
+        # Autonomous behaviours: every one is off until explicitly enabled here.
+        # Grant one at a time; mc_behavior refuses modes that are not listed.
+        behaviors:
+          explore: false
+          woodcut: false
+          mine: false
+          fight: false
+        behaviorRadius: 32
+        behaviorMinHealth: 6
+        behaviorMaxDurationMs: 120000
+        behaviorProtectPlayers: true
+        behaviorProtectDistance: 3
+

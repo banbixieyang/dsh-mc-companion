@@ -1,0 +1,48 @@
+{
+  "name": "small_house",
+  "size": { "x": 7, "y": 3, "z": 7 },
+  "palette": {
+    "A": "minecraft:oak_planks",
+    "B": "minecraft:glass",
+    "C": "minecraft:oak_log",
+    ".": "minecraft:air"
+  },
+  "layers": [
+    {
+      "y": 0,
+      "rows": [
+        "AAAAAAA",
+        "AAAAAAA",
+        "AAAAAAA",
+        "AAAAAAA",
+        "AAAAAAA",
+        "AAAAAAA",
+        "AAAAAAA"
+      ]
+    },
+    {
+      "y": 1,
+      "rows": [
+        "CABABAC",
+        "A.....A",
+        "A.....A",
+        "A.....A",
+        "A.....A",
+        "A.....A",
+        "AA.AAAA"
+      ]
+    },
+    {
+      "y": 2,
+      "rows": [
+        "AAAAAAA",
+        "AAAAAAA",
+        "AAAAAAA",
+        "AAABAAA",
+        "AAAAAAA",
+        "AAAAAAA",
+        "AAAAAAA"
+      ]
+    }
+  ]
+}
